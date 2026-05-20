@@ -83,15 +83,17 @@ detect_large_storage() {
         echo "✅ 使用 /tmp（设备: $TMP_DEV, 容量: ${TMP_SIZE_GB}G）"
     else
         if [ ${#CANDIDATES[@]} -eq 0 ]; then
-            echo "❌ 未检测到 >=${MIN_SIZE_GB}G 的数据盘"
-            exit 1
+            TARGET_MOUNT="$CURRENT_DIR"
+            TARGET_DEV="$(findmnt -n -o SOURCE -T "$CURRENT_DIR" 2>/dev/null || df -P "$CURRENT_DIR" | awk 'NR==2{print $1}')"
+            TARGET_SIZE_GB="$(df -P "$CURRENT_DIR" | awk 'NR==2{print int($2/1024/1024)}')"
+            echo "⚠️  未检测到 >=${MIN_SIZE_GB}G 的数据盘，改用当前目录: $TARGET_MOUNT（设备: $TARGET_DEV, 容量: ${TARGET_SIZE_GB}G）"
+        else
+            read -r MAX_GB MAX_DEV MAX_MNT <<< "${CANDIDATES[0]}"
+            TARGET_MOUNT="$MAX_MNT"
+            TARGET_DEV="$MAX_DEV"
+            TARGET_SIZE_GB="$MAX_GB"
+            echo "✅ 使用数据盘: $MAX_DEV -> $TARGET_MOUNT (${MAX_GB}G)"
         fi
-
-        read -r MAX_GB MAX_DEV MAX_MNT <<< "${CANDIDATES[0]}"
-        TARGET_MOUNT="$MAX_MNT"
-        TARGET_DEV="$MAX_DEV"
-        TARGET_SIZE_GB="$MAX_GB"
-        echo "✅ 使用数据盘: $MAX_DEV -> $TARGET_MOUNT (${MAX_GB}G)"
     fi
 }
 
